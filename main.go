@@ -22,6 +22,7 @@ func main() {
 	var posY float64
 	var scaleX float64
 	var scaleY float64
+	var colorPreset string
 	var useJpeg bool
 	var printHelp bool
 
@@ -32,6 +33,7 @@ func main() {
 	flag.Float64Var(&posY, "posY", 0, "y positions of the center of the resulting image")
 	flag.Float64Var(&scaleX, "scaleX", 1, "x scale of the resulting image")
 	flag.Float64Var(&scaleY, "scaleY", 1, "y scale of the resulting image")
+	flag.StringVar(&colorPreset, "colorPreset", "default", "choose a color preset: default, red")
 	flag.BoolVar(&useJpeg, "jpeg", false, "write jpeg imagte file")
 	flag.BoolVar(&printHelp, "help", false, "print help")
 
@@ -46,6 +48,8 @@ func main() {
 	fmt.Println("iterations:", iterations)
 	fmt.Println("posx:", posX, "posY:", posY)
 	fmt.Println("scaleX:", scaleX, "scaleY:", scaleY)
+	fmt.Println("colorPreset:", colorPreset)
+	fmt.Println("write file as jpeg:", useJpeg)
 
 	img := image.NewRGBA(image.Rect(0, 0, resX, resY))
 
@@ -57,14 +61,7 @@ func main() {
 			v := vec{px*scaleX + posX, py*scaleY + posY}
 			m := mandelbrot(iterations, v)
 
-			red := uint8((255 / iterations) * m)
-			green := 0
-			if m > (iterations / 2) {
-				green = ((255 / iterations) * (m - (iterations / 2)))
-			}
-			blue := 0
-
-			img.Set(x, y, color.RGBA{red, uint8(green), uint8(blue), 255})
+			img.Set(x, y, calcColor(m, iterations, colorPreset))
 		}
 	}
 
@@ -100,6 +97,21 @@ func mandelbrot(n int, z vec) int {
 		}
 	}
 	return 0
+}
+
+func calcColor(m int, iterations int, colorPreset string) color.RGBA {
+	switch colorPreset {
+	case "red":
+		red := uint8((255 / iterations) * m)
+		green := 0
+		if m > (iterations / 2) {
+			green = ((255 / iterations) * (m - (iterations / 2)))
+		}
+		blue := 0
+		return color.RGBA{red, uint8(green), uint8(blue), 255}
+	}
+
+	return color.RGBA{uint8((255 / iterations) * m), uint8((255 / iterations) * m), uint8((255 / iterations) * m), 255}
 }
 
 func vecAdd(a vec, b vec) vec {
