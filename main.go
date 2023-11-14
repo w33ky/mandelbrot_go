@@ -1,73 +1,50 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
+	"image/png"
 	"log"
 	"math"
 	"os"
-	"strconv"
 )
 
 type vec = [2]float64
 
 func main() {
-	if len(os.Args) < 3 {
-		panic("you have to pass x and y")
-	}
+	var resX int
+	var resY int
+	var iterations int
+	var posX float64
+	var posY float64
+	var scaleX float64
+	var scaleY float64
+	var useJpeg bool
+	var printHelp bool
 
-	resX, err := strconv.Atoi(os.Args[1])
-	if err != nil {
-		panic(err)
-	}
+	flag.IntVar(&resX, "resX", 800, "width of the image in pixels")
+	flag.IntVar(&resY, "resY", 600, "height of the image in pixels")
+	flag.IntVar(&iterations, "iterations", 50, "maximum number of iterations to calculate")
+	flag.Float64Var(&posX, "posX", 0, "x positions of the center of the resulting image")
+	flag.Float64Var(&posY, "posY", 0, "y positions of the center of the resulting image")
+	flag.Float64Var(&scaleX, "scaleX", 1, "x scale of the resulting image")
+	flag.Float64Var(&scaleY, "scaleY", 1, "y scale of the resulting image")
+	flag.BoolVar(&useJpeg, "jpeg", false, "write jpeg imagte file")
+	flag.BoolVar(&printHelp, "help", false, "print help")
 
-	resY, err := strconv.Atoi(os.Args[2])
-	if err != nil {
-		panic(err)
+	flag.Parse()
+
+	if printHelp {
+		flag.PrintDefaults()
+		os.Exit(0)
 	}
 
 	fmt.Println("resX:", resX, "resY:", resY)
-
-	iteration := 50
-	if len(os.Args) >= 4 {
-		iteration, err = strconv.Atoi(os.Args[3])
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	fmt.Println("iterations:", iteration)
-
-	posX := float64(0)
-	posY := float64(0)
-	if len(os.Args) >= 6 {
-		posX, err = strconv.ParseFloat(os.Args[4], 64)
-		if err != nil {
-			panic(err)
-		}
-		posY, err = strconv.ParseFloat(os.Args[5], 64)
-		if err != nil {
-			panic(err)
-		}
-	}
-
+	fmt.Println("iterations:", iterations)
 	fmt.Println("posx:", posX, "posY:", posY)
-
-	scaleX := float64(1)
-	scaleY := float64(1)
-	if len(os.Args) >= 8 {
-		scaleX, err = strconv.ParseFloat(os.Args[6], 64)
-		if err != nil {
-			panic(err)
-		}
-		scaleY, err = strconv.ParseFloat(os.Args[7], 64)
-		if err != nil {
-			panic(err)
-		}
-	}
-
 	fmt.Println("scaleX:", scaleX, "scaleY:", scaleY)
 
 	img := image.NewRGBA(image.Rect(0, 0, resX, resY))
@@ -78,12 +55,12 @@ func main() {
 			py := calcPos(y, resY)
 
 			v := vec{px*scaleX + posX, py*scaleY + posY}
-			m := mandelbrot(iteration, v)
+			m := mandelbrot(iterations, v)
 
-			red := uint8((255 / iteration) * m)
+			red := uint8((255 / iterations) * m)
 			green := 0
-			if m > (iteration / 2) {
-				green = ((255 / iteration) * (m - (iteration / 2)))
+			if m > (iterations / 2) {
+				green = ((255 / iterations) * (m - (iterations / 2)))
 			}
 			blue := 0
 
@@ -91,13 +68,24 @@ func main() {
 		}
 	}
 
-	f, err := os.Create("img.jpg")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	if err = jpeg.Encode(f, img, nil); err != nil {
-		log.Printf("failed to encode: %v", err)
+	if useJpeg {
+		f, err := os.Create("img.jpg")
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+		if err = jpeg.Encode(f, img, &jpeg.Options{Quality: 95}); err != nil {
+			log.Printf("failed to encode: %v", err)
+		}
+	} else {
+		f, err := os.Create("img.png")
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+		if err = png.Encode(f, img); err != nil {
+			log.Printf("failed to encode: %v", err)
+		}
 	}
 }
 
