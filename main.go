@@ -14,6 +14,12 @@ import (
 
 type vec = [2]float64
 
+type rResult struct {
+	m int
+	x int
+	y int
+}
+
 func main() {
 	var resX int
 	var resY int
@@ -24,6 +30,7 @@ func main() {
 	var scaleY float64
 	var colorPreset string
 	var useJpeg bool
+	var multithread bool
 	var printHelp bool
 
 	flag.IntVar(&resX, "resX", 800, "width of the image in pixels")
@@ -35,6 +42,7 @@ func main() {
 	flag.Float64Var(&scaleY, "scaleY", 1, "y scale of the resulting image")
 	flag.StringVar(&colorPreset, "colorPreset", "default", "choose a color preset: default, red")
 	flag.BoolVar(&useJpeg, "jpeg", false, "write jpeg imagte file")
+	flag.BoolVar(&multithread, "multithread", false, "use multithreaded calculation")
 	flag.BoolVar(&printHelp, "help", false, "print help")
 
 	flag.Parse()
@@ -55,13 +63,21 @@ func main() {
 
 	for x := 0; x < resX; x++ {
 		for y := 0; y < resY; y++ {
-			px := calcPos(x, resX)
-			py := calcPos(y, resY)
-
-			v := vec{px*scaleX + posX, py*scaleY + posY}
-			m := mandelbrot(iterations, v)
-
-			img.Set(x, y, calcColor(m, iterations, colorPreset))
+			if multithread {
+				go func(x int, y int, img *image.RGBA) {
+					px := calcPos(x, resX)
+					py := calcPos(y, resY)
+					v := vec{px*scaleX + posX, py*scaleY + posY}
+					m := mandelbrot(iterations, v)
+					img.Set(x, y, calcColor(m, iterations, colorPreset))
+				}(x, y, img)
+			} else {
+				px := calcPos(x, resX)
+				py := calcPos(y, resY)
+				v := vec{px*scaleX + posX, py*scaleY + posY}
+				m := mandelbrot(iterations, v)
+				img.Set(x, y, calcColor(m, iterations, colorPreset))
+			}
 		}
 	}
 
