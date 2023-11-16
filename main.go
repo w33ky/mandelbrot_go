@@ -14,12 +14,6 @@ import (
 
 type vec = [2]float64
 
-type rResult struct {
-	m int
-	x int
-	y int
-}
-
 func main() {
 	var resX int
 	var resY int
