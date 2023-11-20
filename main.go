@@ -25,6 +25,7 @@ func main() {
 	var colorPreset string
 	var useJpeg bool
 	var multithread bool
+	var dryrun bool
 	var printHelp bool
 
 	flag.IntVar(&resX, "resX", 800, "width of the image in pixels")
@@ -34,9 +35,10 @@ func main() {
 	flag.Float64Var(&posY, "posY", 0, "y positions of the center of the resulting image")
 	flag.Float64Var(&scaleX, "scaleX", 1, "x scale of the resulting image")
 	flag.Float64Var(&scaleY, "scaleY", 1, "y scale of the resulting image")
-	flag.StringVar(&colorPreset, "colorPreset", "default", "choose a color preset: default, red")
+	flag.StringVar(&colorPreset, "colorPreset", "default", "choose a color preset: default, red, grey4, bw, bwi")
 	flag.BoolVar(&useJpeg, "jpeg", false, "write jpeg imagte file")
 	flag.BoolVar(&multithread, "multithread", false, "use multithreaded calculation")
+	flag.BoolVar(&dryrun, "dryrun", false, "calculate without writing the image")
 	flag.BoolVar(&printHelp, "help", false, "print help")
 
 	flag.Parse()
@@ -63,14 +65,18 @@ func main() {
 					py := calcPos(y, resY)
 					v := vec{px*scaleX + posX, py*scaleY + posY}
 					m := mandelbrot(iterations, v)
-					img.Set(x, y, calcColor(m, iterations, colorPreset))
+					if !dryrun {
+						img.Set(x, y, calcColor(m, iterations, colorPreset))
+					}
 				}(x, y, img)
 			} else {
 				px := calcPos(x, resX)
 				py := calcPos(y, resY)
 				v := vec{px*scaleX + posX, py*scaleY + posY}
 				m := mandelbrot(iterations, v)
-				img.Set(x, y, calcColor(m, iterations, colorPreset))
+				if !dryrun {
+					img.Set(x, y, calcColor(m, iterations, colorPreset))
+				}
 			}
 		}
 	}
@@ -119,6 +125,28 @@ func calcColor(m int, iterations int, colorPreset string) color.RGBA {
 		}
 		blue := 0
 		return color.RGBA{red, uint8(green), uint8(blue), 255}
+	case "grey4":
+		var col uint8
+		if m < 1 {
+			col = 255
+		} else if float64(m) < float64(iterations)*0.33 {
+			col = 177
+		} else if float64(m) < float64(iterations)*0.77 {
+			col = 88
+		} else {
+			col = 0
+		}
+		return color.RGBA{col, col, col, 255}
+	case "bw":
+		if m < 1 {
+			return color.RGBA{0, 0, 0, 255}
+		}
+		return color.RGBA{255, 255, 255, 255}
+	case "bwi":
+		if m < 1 {
+			return color.RGBA{255, 255, 255, 255}
+		}
+		return color.RGBA{0, 0, 0, 255}
 	}
 
 	return color.RGBA{uint8((255 / iterations) * m), uint8((255 / iterations) * m), uint8((255 / iterations) * m), 255}
