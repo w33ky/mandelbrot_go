@@ -115,6 +115,22 @@ func mandelbrot(n int, z vec) int {
 	return 0
 }
 
+func valBetween(a uint8, b uint8, val float64) uint8 {
+	xa := a
+	xb := b
+	xval := val
+	if a > b {
+		xa = b
+		xb = a
+		xval = 1 - val
+	}
+	return (uint8(float64(xb-xa)*xval) + xa)
+}
+
+func valPerc(min float64, max float64, val float64) float64 {
+	return float64((val - min) / (max - min))
+}
+
 func calcColor(m int, iterations int, colorPreset string) color.RGBA {
 	switch colorPreset {
 	case "red":
@@ -125,6 +141,19 @@ func calcColor(m int, iterations int, colorPreset string) color.RGBA {
 		}
 		blue := 0
 		return color.RGBA{red, uint8(green), uint8(blue), 255}
+	case "tri":
+		perc := valPerc(0, float64(iterations), float64(m))
+		if perc < 0.3 {
+			colorPerc := valPerc(0, 0.3, perc)
+			return color.RGBA{0, 0, valBetween(0, 200, colorPerc), 255}
+		}
+		if perc < 0.6 {
+			colorPerc := valPerc(0.3, 0.6, perc)
+			return color.RGBA{0, valBetween(0, 200, colorPerc), valBetween(200, 0, colorPerc), 255}
+		}
+		colorPerc := valPerc(0.6, 1, perc)
+		return color.RGBA{valBetween(0, 255, colorPerc), valBetween(200, 255, colorPerc), valBetween(0, 50, colorPerc), 255}
+
 	case "grey4":
 		var col uint8
 		if m < 1 {
