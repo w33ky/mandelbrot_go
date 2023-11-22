@@ -35,7 +35,7 @@ func main() {
 	flag.Float64Var(&posY, "posY", 0, "y positions of the center of the resulting image")
 	flag.Float64Var(&scaleX, "scaleX", 1, "x scale of the resulting image")
 	flag.Float64Var(&scaleY, "scaleY", 1, "y scale of the resulting image")
-	flag.StringVar(&colorPreset, "colorPreset", "default", "choose a color preset: default, red, grey4, bw, bwi")
+	flag.StringVar(&colorPreset, "colorPreset", "default", "choose a color preset: default, red, grey4, bw, bwi, tri, pastel")
 	flag.BoolVar(&useJpeg, "jpeg", false, "write jpeg imagte file")
 	flag.BoolVar(&multithread, "multithread", false, "use multithreaded calculation")
 	flag.BoolVar(&dryrun, "dryrun", false, "calculate without writing the image")
