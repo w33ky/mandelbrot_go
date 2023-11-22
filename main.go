@@ -153,7 +153,9 @@ func calcColor(m int, iterations int, colorPreset string) color.RGBA {
 		}
 		colorPerc := valPerc(0.6, 1, perc)
 		return color.RGBA{valBetween(0, 255, colorPerc), valBetween(200, 255, colorPerc), valBetween(0, 50, colorPerc), 255}
-
+	case "pastel":
+		perc := valPerc(0, float64(iterations), float64(m))
+		return color.RGBA{valBetween(255, 130, perc), valBetween(255, 102, perc), valBetween(255, 255, perc), 255}
 	case "grey4":
 		var col uint8
 		if m < 1 {
