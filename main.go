@@ -24,7 +24,7 @@ func main() {
 	var scaleY float64
 	var colorPreset string
 	var useJpeg bool
-	var multithread bool
+	var mt int
 	var dryrun bool
 	var printHelp bool
 
@@ -37,7 +37,7 @@ func main() {
 	flag.Float64Var(&scaleY, "scaleY", 1, "y scale of the resulting image")
 	flag.StringVar(&colorPreset, "colorPreset", "default", "choose a color preset: default, red, grey4, bw, bwi, tri, pastel")
 	flag.BoolVar(&useJpeg, "jpeg", false, "write jpeg imagte file")
-	flag.BoolVar(&multithread, "multithread", false, "use multithreaded calculation")
+	flag.IntVar(&mt, "mt", 1, "number of threads to use")
 	flag.BoolVar(&dryrun, "dryrun", false, "calculate without writing the image")
 	flag.BoolVar(&printHelp, "help", false, "print help")
 
@@ -57,10 +57,25 @@ func main() {
 
 	img := image.NewRGBA(image.Rect(0, 0, resX, resY))
 
-	for x := 0; x < resX; x++ {
-		for y := 0; y < resY; y++ {
-			if multithread {
-				go func(x int, y int, img *image.RGBA) {
+	yChunkSize := int(math.Ceil(float64(resY) / float64(mt)))
+	fmt.Println("chunkSize ", yChunkSize)
+
+	channel := make(chan [2]int)
+
+	threadsCreated := 0
+	lastLimit := 0
+	keepGoing := true
+	for keepGoing {
+		yFrom := lastLimit
+		yLimit := lastLimit + yChunkSize
+		if yLimit >= resY {
+			yLimit = resY
+			keepGoing = false
+		}
+
+		go func(yFrom int, yLimit int, resX int, dryrun bool, channel chan [2]int, img *image.RGBA) {
+			for y := yFrom; y < yLimit; y++ {
+				for x := 0; x < resX; x++ {
 					px := calcPos(x, resX)
 					py := calcPos(y, resY)
 					v := vec{px*scaleX + posX, py*scaleY + posY}
@@ -68,17 +83,18 @@ func main() {
 					if !dryrun {
 						img.Set(x, y, calcColor(m, iterations, colorPreset))
 					}
-				}(x, y, img)
-			} else {
-				px := calcPos(x, resX)
-				py := calcPos(y, resY)
-				v := vec{px*scaleX + posX, py*scaleY + posY}
-				m := mandelbrot(iterations, v)
-				if !dryrun {
-					img.Set(x, y, calcColor(m, iterations, colorPreset))
 				}
 			}
-		}
+			channel <- [2]int{yFrom, yLimit}
+		}(yFrom, yLimit, resX, dryrun, channel, img)
+
+		threadsCreated++
+		lastLimit = yLimit
+	}
+
+	for i := 0; i < threadsCreated; i++ {
+		result := <-channel
+		fmt.Println("finished y", result[0], "to", result[1])
 	}
 
 	if useJpeg {
